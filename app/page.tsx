@@ -93,7 +93,7 @@ export default function Home() {
                     <img
                       src={url}
                       alt={`Generated mascot ${index + 1}`}
-                      className="w-full h-48 object-cover"
+                      className="w-24 h-24 object-cover"
                       />
                     <div className="p-4">
                       <p className="text-sm text-gray-500 break-all">{url}</p>

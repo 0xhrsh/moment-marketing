@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (!input.prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-
+    //TODO: add subject url field from the user 
     const subjectUrl = "https://replicate.delivery/pbxt/L0gy7uyLE5UP0uz12cndDdSOIgw5R3rV5N6G2pbt7kEK9dCr/0_3.webp";
     //@typescript-eslint/no-explicit-any
     const prediction = await replicate.predictions.create({
