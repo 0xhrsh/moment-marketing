@@ -32,6 +32,10 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
         throw new Error('Prediction was canceled');
       case 'processing':
       case 'starting':
+        if (attempt % 10 === 0) {
+          // Send periodic updates every 10 attempts to the frontend
+          console.log('Still processing...');
+        }
         await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
         break;
       default:
@@ -43,7 +47,7 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
 
 export async function POST(request: Request) {
   const replicate = new Replicate({
-    auth: 'r8_S7o1Tm3HGwEe2QWcua2vRCetNAHAUgW1yNaDY',
+    auth: process.env.REPLICATE_API_KEY,
   });
 
   try {
@@ -95,6 +99,7 @@ export async function POST(request: Request) {
 }
 
 export type GenerateImageResponse = {
+  status:`processing`|`succeeded`|`failed`|`canceled`|`starting`;
   success: boolean;
   images?: string[];
   predictionId?: string;

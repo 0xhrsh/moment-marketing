@@ -19,98 +19,111 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEvent }),
       });
+  
+      if (!promptRes.ok) {
+        const errorData = await promptRes.json();
+        setError(errorData.error || "Failed to generate prompt");
+        return;
+      }
+  
       const { prompt } = await promptRes.json();
       setGeneratedPrompt(prompt);
-
+  
+      // Fetch the image using the generated prompt
       const response = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
       });
-
+  
+      // Check if the image generation was successful
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to generate image");
+        return;
+      }
+  
       const data: GenerateImageResponse = await response.json();
-
+  
       if (data.success && data.images) {
         setImages(data.images);
+      } else if (data.status === 'processing') {
+        setError('Image generation is taking longer than expected, please wait.');
       } else {
-        setError(data.error || "An error occurred");
+        setError(data.error || "An error occurred during image generation");
       }
     } catch (error) {
       console.error("Error generating image:", error);
-      setError("An unexpected error occurred");
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-purple-100 p-8">
-      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
-        <div className="p-8">
-          <h1 className="text-4xl font-bold mb-6 text-gray-800">
-            Mascot Image Generator
-          </h1>
-          <div className="flex items-center space-x-4 mb-8">
+
+    <div className="min-h-screen bg-gray-900 text-white p-4">
+    <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+      <div className="p-6 flex flex-col lg:flex-row">
+        <div className="lg:w-2/3 pr-4 mb-6 lg:mb-0">
+          <h1 className="text-2xl font-bold mb-4">Mascot Image Generator</h1>
+          <div className="flex space-x-2 mb-4">
             <input
               type="text"
               value={userEvent}
               onChange={(e) => setUserEvent(e.target.value)}
-              placeholder="Describe the event (e.g., waving a flag)"
-              className="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 text-black  focus:ring-blue-500 focus:border-transparent"
+              placeholder="Describe the event"
+              className="flex-grow p-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
               onClick={handleGenerate}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
               disabled={loading}
             >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </span>
-              ) : (
-                "Generate"
-              )}
+              {loading ? "Generating..." : "Generate"}
             </button>
           </div>
 
           {error && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <div className="bg-red-900 border-l-4 border-red-500 text-red-100 p-4 mb-4" role="alert">
               <p>{error}</p>
             </div>
           )}
 
-
-          {images.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">Generated Images</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {images.map((url, index) => (
-                  <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    <img
-                      src={url}
-                      alt={`Generated mascot ${index + 1}`}
-                      className="w-24 h-24 object-cover"
-                      />
-                    <div className="p-4">
-                      <p className="text-sm text-gray-500 break-all">{url}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {generatedPrompt && (
-            <div className="mb-8 mt-8 bg-gray-100 p-4 rounded-lg">
-              <h2 className="text-xl font-semibold mb-2 text-gray-800">Generated Prompt</h2>
-              <p className="text-gray-700">{generatedPrompt}</p>
+            <div className="bg-gray-700 p-4 rounded-lg mt-4">
+              <h2 className="text-xl font-semibold mb-2">Generated Prompt</h2>
+              <p className="text-gray-300">{generatedPrompt}</p>
             </div>
           )}
         </div>
+
+        <div className="lg:w-2/3 lg:pl-4 flex flex-col">
+          <div className="mb-4 flex-1">
+            Generated Image
+            {images.length > 0 ? (
+              <img 
+                src={images[0]}
+                alt="Generated Image"
+                className="w-48 h-48 object-contain rounded-lg"
+              />
+            ) : (
+              <div className="w-48 h-48 bg-gray-700 rounded-lg flex items-center justify-center">
+                <p>Generated image will appear here</p>
+              </div>
+            )}
+          </div>
+          <div className="flex-1  items-center justify-center">
+            Character Reference passed
+            <img 
+              src="https://replicate.delivery/pbxt/L0gy7uyLE5UP0uz12cndDdSOIgw5R3rV5N6G2pbt7kEK9dCr/0_3.webp"
+              alt="Constant Image"
+              className="w-48 h-48 object-contain rounded-lg"
+            />
+          </div>
+        </div>
       </div>
     </div>
+  </div>
   );
 }
