@@ -4,7 +4,8 @@ export async function POST(request: Request) {
     try {
         const { userEvent } = await request.json();
 
-        const basePrompt = `Describe the cartoon style mascot of the company in every single detail, including physical attributes, personality, and the event of ${userEvent}. Please ensure the description fits the character reference provided. limit to 200 tokens.`;
+        // The base prompt style remains the same, only the event (userEvent) changes
+        const basePrompt = `TOK: Create a cartoon character of a young man with medium-length, slightly wavy black hair falling around his forehead, wearing a zip-up jacket. The scene should describe the character ${userEvent}. A thought bubble floats above his head with the exact words that reflect his mood in the situation. Please ensure the description is detailed, includes the character's expression, and captures the environment. Limit the description to 200 tokens.`;
 
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-                model: 'gpt-4o',  // Updated to GPT-4o
+                model: 'gpt-4o', // Using GPT-4 for higher quality
                 messages: [
                     { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: basePrompt }
@@ -23,9 +24,7 @@ export async function POST(request: Request) {
         });
 
         const openaiData = await openaiResponse.json();
-        console.log("OpenAI Response:", openaiData);  // Log OpenAI response for debugging
 
-        // Check if choices exist and are not empty
         if (openaiData.choices && openaiData.choices.length > 0) {
             const generatedPrompt = openaiData.choices[0].message.content.trim();
             return NextResponse.json({ prompt: generatedPrompt });

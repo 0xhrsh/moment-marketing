@@ -1,22 +1,23 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
-const POLLING_INTERVAL = 1000; // 1 second
+const POLLING_INTERVAL = 1000; // 1 second polling interval
 const MAX_ATTEMPTS = 120; // 2 minutes total polling time
-
+export interface GenerateImageResponse {
+  success: boolean;
+  images?: string[]; // Array of image URLs
+  error?: string;
+  status: 'processing' | 'succeeded' | 'failed';
+}
 interface InputSchema {
-  seed?: number;
   prompt: string;
-  subject?: string;
+  num_outputs?: number;
+  width?: number;
+  height?: number;
   output_format?: 'webp' | 'jpg' | 'png';
-  output_quality?: number;
-  negative_prompt?: string;
-  randomise_poses?: boolean;
-  number_of_outputs?: number;
-  disable_safety_checker?: boolean;
-  number_of_images_per_pose?: number;
 }
 
+// Polling function to check the status of the prediction until it finishes
 async function pollPrediction(replicate: Replicate, predictionId: string): Promise<string[]> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const prediction = await replicate.predictions.get(predictionId);
@@ -24,7 +25,6 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
 
     switch (prediction.status) {
       case 'succeeded':
-        console.log('Output URLs:', prediction.output);
         return prediction.output;
       case 'failed':
         throw new Error(`Prediction failed: ${prediction.error}`);
@@ -32,10 +32,6 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
         throw new Error('Prediction was canceled');
       case 'processing':
       case 'starting':
-        if (attempt % 10 === 0) {
-          // Send periodic updates every 10 attempts to the frontend
-          console.log('Still processing...');
-        }
         await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
         break;
       default:
@@ -47,7 +43,7 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
 
 export async function POST(request: Request) {
   const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_KEY,
+    auth: process.env.REPLICATE_API_KEY, // Ensure you have the Replicate API key set in your environment
   });
 
   try {
@@ -56,30 +52,28 @@ export async function POST(request: Request) {
     if (!input.prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-    //TODO: add subject url field from the user 
-    const subjectUrl = "https://replicate.delivery/pbxt/L0gy7uyLE5UP0uz12cndDdSOIgw5R3rV5N6G2pbt7kEK9dCr/0_3.webp";
-    //@typescript-eslint/no-explicit-any
+
+    // Call the Replicate API to create a prediction
     const prediction = await replicate.predictions.create({
-      version: "e90b0b680b1dca1bab496f163fdfc7cff174f7cd18d094bf57664f1891f2e857",
+      version: "cc3beea6ddc39416cf121390b476b1a8802ca47db03fb97306ef6c25f38f60a2", // Use the model version you provided
       input: {
         prompt: input.prompt,
-        subject: subjectUrl,
-        seed: input.seed,
-        output_format: input.output_format || 'webp',
-        output_quality: input.output_quality || 80,
-        negative_prompt: input.negative_prompt || '',
-        randomise_poses: input.randomise_poses ?? true,
-        number_of_outputs: input.number_of_outputs || 1,
-        disable_safety_checker: input.disable_safety_checker || false,
-        number_of_images_per_pose: input.number_of_images_per_pose || 1,
-      },
+        num_outputs: input.num_outputs || 1, // Default to 1 output
+        width: input.width || 1024, // Default width
+        height: input.height || 1024, // Default height
+        output_format: input.output_format || 'webp' // Default format
+      }
     });
 
-    console.log('Prediction created:', prediction.id);
+    // Ensure that the prediction object contains an ID
+    if (!prediction.id) {
+      throw new Error('Prediction ID not returned from Replicate API');
+    }
 
+    console.log('Prediction created with ID:', prediction.id);
+
+    // Poll until the prediction is complete
     const outputUrls = await pollPrediction(replicate, prediction.id);
-
-    console.log('Final output URLs:', outputUrls);
 
     return NextResponse.json({
       success: true,
@@ -88,7 +82,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Error in image generation:', error);
+    console.error('Error in image generation:', error.message);
 
     return NextResponse.json({
       error: 'Failed to generate image',
@@ -97,13 +91,3 @@ export async function POST(request: Request) {
     }, { status: 500 });
   }
 }
-
-export type GenerateImageResponse = {
-  status:`processing`|`succeeded`|`failed`|`canceled`|`starting`;
-  success: boolean;
-  images?: string[];
-  predictionId?: string;
-  error?: string;
-  details?: string;
-  timestamp?: string;
-};
