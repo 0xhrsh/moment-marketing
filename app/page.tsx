@@ -76,21 +76,24 @@ export default function Home() {
       <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
         <div className="p-6 flex flex-col lg:flex-row">
           <div className="lg:w-2/3 pr-4 mb-6 lg:mb-0">
-            <h1 className="text-2xl font-bold mb-4">Mascot Image Generator</h1>
+            <h1 className="text-2xl font-bold mb-4">Event based Cartoon Generator 🎨</h1>
             <div className="flex space-x-2 mb-4">
+              
+             
               <input
+              id="event"
                 type="text"
                 value={userEvent}
                 onChange={(e) => setUserEvent(e.target.value)}
                 placeholder="Describe the event"
                 className="flex-grow p-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                />
               <button
                 onClick={handleGeneratePrompt}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out"
                 disabled={loading}
               >
-                {loading ? "Generating..." : "Generate Prompt"}
+                {loading ? "Generating...🤔" : "Generate Prompt"}
               </button>
             </div>
 
@@ -103,7 +106,7 @@ export default function Home() {
             )}
 
             <div>
-              <label htmlFor="generatedPrompt" className="text-gray-400">Generated Prompt:</label>
+              <label htmlFor="generatedPrompt" className="text-gray-400">Generated Prompt(you can edit this):</label>
               {generatedPrompt && (
                 <textarea
                   id="generatedPrompt"
@@ -120,7 +123,7 @@ export default function Home() {
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out mt-4"
               disabled={loading}
             >
-              {loading ? "Submitting..." : "Submit for Image"}
+              {loading ? "Submitting...🤔" : "Submit for Image"}
             </button>
           </div>
 
@@ -145,8 +148,8 @@ export default function Home() {
                     </a>
                   </div>))
               ) : (
-                <div className="w-48 h-48 bg-gray-700 rounded-lg flex items-center justify-center">
-                  <p>Generated image will appear here</p>
+                <div className="w-48 h-48 bg-gray-700 rounded-lg flex items-center justify-center text-center">
+                  <p>Generated image will appear here 🤔</p>
                 </div>
               )}
             </div>
