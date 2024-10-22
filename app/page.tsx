@@ -320,7 +320,7 @@ export default function Home() {
       <div className="bg-gray-800 rounded-lg shadow-xl overflow-hidden">
         <div className="p-6">
           <h1 className="text-2xl font-bold mb-4">
-            Event-based Cartoon Generator 🎨
+            Event-based Cartoon Story Generator 🎨
           </h1>
 
           {error && (

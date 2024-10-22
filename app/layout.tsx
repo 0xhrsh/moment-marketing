@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Event Based Mascot Generator",
-  description: "Generate Mascot Images based on the event description the mascot is pre coded",
+  title: "Event Based Cartoon Story Generator",
+  description: "Generate a story and make images based on the event description  ",
 };
 
 export default function RootLayout({
