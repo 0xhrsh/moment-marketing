@@ -46,6 +46,7 @@ export default function Home() {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfError, setPdfError] = useState("");
 
+  // Helper Functions
   const getImageDataUrl = (url: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -75,22 +76,6 @@ export default function Home() {
     });
   };
 
-  const getImageProperties = (imgDataUrl: string): Promise<{ width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-
-      img.onload = () => {
-        resolve({ width: img.width, height: img.height });
-      };
-
-      img.onerror = () => {
-        reject("Failed to load image for properties.");
-      };
-
-      img.src = imgDataUrl;
-    });
-  };
-
   // PDF Generation Function
   const generatePDF = async () => {
     if (images.length === 0) {
@@ -109,57 +94,44 @@ export default function Home() {
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 10; // Margin from edges
-    const spacing = 5; // Space between images
+    const margin = 10; // Margin from page edges in mm
+    const spacing = 5; // Space between images in mm
+    const borderWidth = 1; // Border thickness in mm
 
-    const imagesPerPage = 2;
-    const totalPages = Math.ceil(images.length / imagesPerPage);
+    // Define grid layout: 2 columns
+    const columns = 2;
+    const rows = Math.ceil(images.length / columns);
+    
+    // Calculate available width and height per image, considering spacing
+    const imageWidth = (pageWidth - 2 * margin - (columns - 1) * spacing) / columns;
+    const imageHeight = (pageHeight - 2 * margin - (rows - 1) * spacing) / rows;
 
     try {
-      for (let page = 0; page < totalPages; page++) {
-        if (page !== 0) pdf.addPage(); // Add a new page except for the first
+      // Set border properties
+      pdf.setLineWidth(borderWidth);
+      pdf.setDrawColor(0, 0, 0); // Black borders
 
-        for (let i = 0; i < imagesPerPage; i++) {
-          const imgIndex = page * imagesPerPage + i;
-          if (imgIndex >= images.length) break;
+      for (let i = 0; i < images.length; i++) {
+        const imgUrl = images[i];
+        const imgData = await getImageDataUrl(imgUrl);
 
-          const imgUrl = images[imgIndex];
-          const imgData = await getImageDataUrl(imgUrl);
+        // Calculate row and column for current image
+        const col = i % columns;
+        const row = Math.floor(i / columns);
 
-          // Calculate image dimensions
-          const imgProps = await getImageProperties(imgData);
-          const maxWidth = pageWidth - 2 * margin;
-          const maxHeight = (pageHeight - 2 * margin - spacing) / imagesPerPage;
+        // Calculate x and y positions
+        const x = margin + col * (imageWidth + spacing);
+        const y = margin + row * (imageHeight + spacing);
 
-          let { width, height } = imgProps;
+        // Add image to PDF
+        pdf.addImage(imgData, "PNG", x, y, imageWidth, imageHeight);
 
-          // Maintain aspect ratio
-          if (width > maxWidth) {
-            height = (maxWidth / width) * height;
-            width = maxWidth;
-          }
-
-          if (height > maxHeight) {
-            width = (maxHeight / height) * width;
-            height = maxHeight;
-          }
-
-          // Calculate position
-          const x = (pageWidth - width) / 2;
-          const y = margin + i * (maxHeight + spacing);
-
-          // Add image to PDF
-          pdf.addImage(imgData, "PNG", x, y, width, height);
-
-          // Add numbering below the image
-          pdf.setFontSize(12);
-          pdf.text(`Image ${imgIndex + 1}`, pageWidth / 2, y + height + 5, {
-            align: "center",
-          });
-        }
+        // Draw border around the image
+        pdf.rect(x, y, imageWidth, imageHeight);
       }
 
-      pdf.save("generated_images.pdf");
+      // Save the PDF with the specified name
+      pdf.save("story-book.pdf");
     } catch (error) {
       console.error("PDF Generation Error:", error);
       setPdfError("Failed to generate PDF. Please try again.");
@@ -167,8 +139,6 @@ export default function Home() {
       setPdfGenerating(false);
     }
   };
-
-
   // Handle Image Upload
   const handleImageUpload = async () => {
     if (!uploadedImage) return;
