@@ -1,14 +1,17 @@
+// app/api/generate-image/route.ts
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
 const POLLING_INTERVAL = 1000; // 1 second polling interval
 const MAX_ATTEMPTS = 120; // 2 minutes total polling time
+
 export interface GenerateImageResponse {
   success: boolean;
   images?: string[]; // Array of image URLs
   error?: string;
   status: 'processing' | 'succeeded' | 'failed';
 }
+
 interface InputSchema {
   prompt: string;
   num_outputs?: number;
@@ -43,7 +46,7 @@ async function pollPrediction(replicate: Replicate, predictionId: string): Promi
 
 export async function POST(request: Request) {
   const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_KEY, // Ensure you have the Replicate API key set in your environment
+    auth: process.env.REPLICATE_API_KEY!, // Ensure you have the Replicate API key set in your environment
   });
 
   try {
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
         num_outputs: input.num_outputs || 1, // Default to 1 output
         width: input.width || 1024, // Default width
         height: input.height || 1024, // Default height
-        output_format: input.output_format || 'webp' // Default format
+        output_format: input.output_format || 'webp', // Default format
       }
     });
 
@@ -79,15 +82,20 @@ export async function POST(request: Request) {
       success: true,
       images: outputUrls,
       predictionId: prediction.id,
+      status: 'succeeded',
     });
-
   } catch (error: any) {
-    console.error('Error in image generation:', error.message);
+    console.error('Error in generate-image:', error.message);
 
-    return NextResponse.json({
-      error: 'Failed to generate image',
-      details: error.message,
-      timestamp: new Date().toISOString(),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to generate image',
+        details: error.message,
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
   }
 }
